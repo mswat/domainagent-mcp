@@ -399,6 +399,61 @@ Steps:
       },
     },
   },
+  {
+    name: "domainagent_hosting_status",
+    description:
+      "Check hosting status, tier, usage, and billing info for a deployed domain.",
+    inputSchema: {
+      type: "object",
+      required: ["domain"],
+      properties: {
+        domain: { type: "string", description: "Domain to check hosting for" },
+      },
+    },
+  },
+  {
+    name: "domainagent_hosting_pay",
+    description:
+      "Pay hosting fee for a domain. Protected by x402. Send tier (starter/growth/pro) and billing (monthly/annual). Also resumes paused sites.",
+    inputSchema: {
+      type: "object",
+      required: ["domain"],
+      properties: {
+        domain: { type: "string", description: "Domain to pay hosting for" },
+        tier: { type: "string", description: "Hosting tier: starter, growth, or pro (default: current tier)" },
+        billing: { type: "string", description: "Billing cycle: monthly or annual (default: monthly)" },
+        paymentSignature: { type: "string", description: "x402 payment signature" },
+      },
+    },
+  },
+  {
+    name: "domainagent_hosting_pay_overage",
+    description:
+      "Pay outstanding bandwidth overage for a domain. Protected by x402. Amount is calculated from actual usage. Also resumes paused sites.",
+    inputSchema: {
+      type: "object",
+      required: ["domain"],
+      properties: {
+        domain: { type: "string", description: "Domain with outstanding overage" },
+        paymentSignature: { type: "string", description: "x402 payment signature" },
+      },
+    },
+  },
+  {
+    name: "domainagent_hosting_upgrade",
+    description:
+      "Upgrade the hosting tier for a domain. Requires auth. Does not charge — use domainagent_hosting_pay to pay for the new tier.",
+    inputSchema: {
+      type: "object",
+      required: ["domain", "tier", "authToken"],
+      properties: {
+        domain: { type: "string", description: "Domain to upgrade" },
+        tier: { type: "string", description: "New tier: starter, growth, or pro" },
+        billing: { type: "string", description: "Billing cycle: monthly or annual" },
+        authToken: { type: "string", description: "Session token" },
+      },
+    },
+  },
 ];
 
 // --- Multipart form builder (for file upload endpoints) ---
@@ -655,6 +710,39 @@ async function handleTool(name, args) {
         extraHeaders
       );
 
+      return formatResult(res);
+    }
+
+    case "domainagent_hosting_status": {
+      const res = await apiRequest("GET", `/api/hosting/${encodeURIComponent(args.domain)}`);
+      return formatResult(res);
+    }
+
+    case "domainagent_hosting_pay": {
+      const extraHeaders = {};
+      if (args.paymentSignature) extraHeaders["X-Payment"] = args.paymentSignature;
+      const res = await apiRequest("POST", "/api/hosting/pay", {
+        domain: args.domain,
+        tier: args.tier,
+        billing: args.billing,
+      }, extraHeaders);
+      return formatResult(res);
+    }
+
+    case "domainagent_hosting_pay_overage": {
+      const extraHeaders = {};
+      if (args.paymentSignature) extraHeaders["X-Payment"] = args.paymentSignature;
+      const res = await apiRequest("POST", "/api/hosting/pay-overage", {
+        domain: args.domain,
+      }, extraHeaders);
+      return formatResult(res);
+    }
+
+    case "domainagent_hosting_upgrade": {
+      const res = await apiRequest("POST", `/api/hosting/${encodeURIComponent(args.domain)}/upgrade`, {
+        tier: args.tier,
+        billing: args.billing,
+      }, { Authorization: `Bearer ${args.authToken}` });
       return formatResult(res);
     }
 
