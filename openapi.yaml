@@ -1,0 +1,695 @@
+openapi: 3.1.0
+info:
+  title: ShipAgent API
+  description: |
+    One-prompt deploy service for AI agents and vibe coders.
+    Register a domain, deploy your app, configure DNS, and get SSL — all in one API call.
+    Payment via x402 protocol (USDC on Base mainnet). No account needed. Just a wallet.
+  version: 1.0.0
+  contact:
+    url: https://domainagent.dev
+  license:
+    name: MIT
+
+servers:
+  - url: https://domainagent.dev
+    description: Production
+  - url: http://localhost:3001
+    description: Local development
+
+tags:
+  - name: Discovery
+    description: Agent discovery and metadata
+  - name: Search
+    description: Domain search and recommendations (free)
+  - name: Deploy
+    description: Domain registration and deployment (x402 payment required)
+  - name: Status
+    description: Deployment and DNS status (free)
+
+paths:
+  /.well-known/agent.json:
+    get:
+      tags: [Discovery]
+      summary: Agent discovery metadata
+      description: Machine-readable metadata for AI agent discovery. Describes capabilities, payment info, and API links.
+      operationId: getAgentJson
+      responses:
+        '200':
+          description: Agent metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentMeta'
+              example:
+                name: shipagent
+                description: One-prompt deploy service for AI agents
+                url: https://domainagent.dev
+                openapi: https://domainagent.dev/openapi.yaml
+                readme: https://domainagent.dev/api/agent-readme
+
+  /api/agent-readme:
+    get:
+      tags: [Discovery]
+      summary: Plain text agent guide
+      description: Human and machine readable guide for using ShipAgent as an AI agent.
+      operationId: getAgentReadme
+      responses:
+        '200':
+          description: Plain text guide
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /openapi.yaml:
+    get:
+      tags: [Discovery]
+      summary: OpenAPI spec
+      description: This OpenAPI specification file.
+      operationId: getOpenApiSpec
+      responses:
+        '200':
+          description: OpenAPI YAML
+          content:
+            text/yaml:
+              schema:
+                type: string
+
+  /api/search:
+    post:
+      tags: [Search]
+      summary: Search available domains
+      description: |
+        Search for available domains matching a query keyword.
+        Returns availability, pricing, and domain details.
+        Free endpoint — no payment required.
+      operationId: searchDomains
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+            examples:
+              basic:
+                summary: Basic search
+                value:
+                  query: fitness app
+              with_tlds:
+                summary: Search with specific TLDs
+                value:
+                  query: fittrack
+                  tlds: [".com", ".dev", ".io"]
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+              example:
+                results:
+                  - domain: fittrack.dev
+                    available: true
+                    price: 13.99
+                    renewalPrice: 13.99
+                    currency: USD
+                  - domain: fittrack.com
+                    available: false
+                    price: 12.99
+                    currency: USD
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /api/recommend:
+    post:
+      tags: [Search]
+      summary: AI-powered domain recommendations
+      description: |
+        Get domain suggestions based on a natural language description of your project.
+        Uses keyword extraction to generate multiple search queries and returns
+        the best available options sorted by relevance and price.
+        Free endpoint — no payment required.
+      operationId: recommendDomains
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendRequest'
+            examples:
+              fitness:
+                summary: Fitness app
+                value:
+                  description: a fitness tracking app for runners that logs miles and pace
+                  budget: 20
+              saas:
+                summary: SaaS tool
+                value:
+                  description: project management tool for remote teams
+      responses:
+        '200':
+          description: Domain recommendations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendResponse'
+              example:
+                keywords: [fitness, tracking, runners]
+                suggestions:
+                  - domain: fittrack.dev
+                    available: true
+                    price: 13.99
+                    currency: USD
+                  - domain: runtrack.dev
+                    available: true
+                    price: 13.99
+                    currency: USD
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /api/pricing:
+    get:
+      tags: [Search]
+      summary: TLD price list
+      description: |
+        Returns the current price list for common TLDs, plus deploy and redeploy fees.
+        Prices are in USD/USDC. Free endpoint — no payment required.
+      operationId: getPricing
+      responses:
+        '200':
+          description: Price list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricingResponse'
+              example:
+                tlds:
+                  .com: 12.99
+                  .dev: 13.99
+                  .io: 49.99
+                  .app: 18.99
+                deployFee: 2.0
+                redeployFee: 2.0
+                currency: USD
+                note: Domain prices are approximate. Exact price confirmed at search time.
+
+  /api/status/{domain}:
+    get:
+      tags: [Status]
+      summary: Check deployment status
+      description: |
+        Returns registration, deployment, DNS, and SSL status for a domain.
+        Free endpoint — no payment required.
+      operationId: getStatus
+      parameters:
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Domain name to check (e.g. fittrack.dev)
+          example: fittrack.dev
+      responses:
+        '200':
+          description: Deployment status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              example:
+                domain: fittrack.dev
+                registered: true
+                deployed: true
+                dns: true
+                ssl: true
+                url: https://fittrack.dev
+                deployId: abc123
+                status: live
+                updatedAt: 1712000000000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/deploy:
+    post:
+      tags: [Deploy]
+      summary: Register domain + deploy + configure DNS
+      description: |
+        The all-in-one deploy endpoint. In a single call:
+        1. Check domain availability
+        2. Register the domain via Name.com
+        3. Deploy your files to Cloudflare Pages
+        4. Configure DNS to point to the deployment
+        5. SSL is automatic via Cloudflare
+
+        **x402 Payment Required:**
+        This endpoint is protected by the x402 payment protocol.
+        Price = domain registration cost + $2 deploy fee.
+
+        **Payment Flow:**
+        1. POST to this endpoint → receive HTTP 402 with X-Payment-Required header
+        2. Decode payment requirements (USDC amount, recipient address, network)
+        3. Sign a USDC transfer authorization on Base mainnet
+        4. Retry the same POST with X-Payment header containing signed authorization
+        5. On success, receive deploy results
+
+        **File Format:**
+        Upload a zip file containing your static site.
+        Must have index.html at the root level.
+        Supports: HTML, CSS, JS, images, and other static assets.
+      operationId: deployApp
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DeployRequest'
+      responses:
+        '200':
+          description: Deploy successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeployResponse'
+              example:
+                success: true
+                url: https://fittrack.dev
+                domain: fittrack.dev
+                deployId: dep_abc123
+                status: live
+                ssl: true
+                dns: true
+                cfPagesUrl: https://fittrack-dev.pages.dev
+                note: DNS propagation may take a few minutes. SSL is automatic via Cloudflare.
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Domain not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Domain fittrack.dev is not available for registration
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      x-x402:
+        scheme: exact
+        network: eip155:8453
+        asset: USDC
+        assetAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+        priceDescription: domain registration cost + $2 deploy fee
+
+  /api/redeploy:
+    post:
+      tags: [Deploy]
+      summary: Redeploy existing site
+      description: |
+        Update an existing deployment with new files.
+        The domain must already be registered and deployed via /api/deploy.
+
+        **x402 Payment Required:**
+        Price: $2 USDC flat fee.
+
+        **File Format:**
+        Same as /api/deploy — zip file with index.html at root.
+      operationId: redeployApp
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RedeployRequest'
+      responses:
+        '200':
+          description: Redeploy successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedeployResponse'
+              example:
+                success: true
+                url: https://fittrack.dev
+                deployId: dep_xyz789
+                status: live
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Owner mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No existing deployment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      x-x402:
+        scheme: exact
+        network: eip155:8453
+        asset: USDC
+        assetAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+        price: 2.0
+
+components:
+  schemas:
+    SearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          description: Keyword or phrase to search for available domains
+          example: fitness app
+        tlds:
+          type: array
+          description: TLDs to search (default: .com, .dev, .io, .app, .net, .xyz, .co)
+          items:
+            type: string
+          example: [".com", ".dev", ".io"]
+
+    SearchResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DomainResult'
+
+    RecommendRequest:
+      type: object
+      required: [description]
+      properties:
+        description:
+          type: string
+          description: Natural language description of your project
+          example: a fitness tracking app for runners that logs miles and pace
+        budget:
+          type: number
+          description: Maximum domain price in USD (default 100)
+          example: 20
+
+    RecommendResponse:
+      type: object
+      properties:
+        keywords:
+          type: array
+          description: Keywords extracted from your description
+          items:
+            type: string
+          example: [fitness, tracking, runners]
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/DomainResult'
+
+    DomainResult:
+      type: object
+      properties:
+        domain:
+          type: string
+          description: Full domain name
+          example: fittrack.dev
+        available:
+          type: boolean
+          description: Whether the domain is available for registration
+        price:
+          type: number
+          description: Registration price in USD (first year)
+          example: 13.99
+        renewalPrice:
+          type: number
+          description: Annual renewal price in USD
+          example: 13.99
+        currency:
+          type: string
+          description: Currency for price
+          example: USD
+
+    PricingResponse:
+      type: object
+      properties:
+        tlds:
+          type: object
+          description: Map of TLD to price in USD
+          additionalProperties:
+            type: number
+          example:
+            .com: 12.99
+            .dev: 13.99
+        deployFee:
+          type: number
+          description: Deploy fee in USDC (on top of domain cost)
+          example: 2.0
+        redeployFee:
+          type: number
+          description: Redeploy fee in USDC
+          example: 2.0
+        currency:
+          type: string
+          example: USD
+        note:
+          type: string
+
+    StatusResponse:
+      type: object
+      properties:
+        domain:
+          type: string
+          example: fittrack.dev
+        registered:
+          type: boolean
+          description: Whether the domain is registered
+        deployed:
+          type: boolean
+          description: Whether files are deployed to Cloudflare Pages
+        dns:
+          type: boolean
+          description: Whether DNS is configured to point to the deployment
+        ssl:
+          type: boolean
+          description: Whether SSL is active
+        url:
+          type: string
+          nullable: true
+          description: Live URL if deployed
+          example: https://fittrack.dev
+        deployId:
+          type: string
+          nullable: true
+          description: Cloudflare Pages deployment ID
+        status:
+          type: string
+          enum: [unknown, registered, deploying, live, error]
+          example: live
+        updatedAt:
+          type: integer
+          nullable: true
+          description: Unix timestamp of last status update
+
+    DeployRequest:
+      type: object
+      required: [domain, owner]
+      properties:
+        domain:
+          type: string
+          description: Domain to register and deploy to
+          example: fittrack.dev
+        owner:
+          type: string
+          description: Wallet address of the deployer (used for ownership verification on redeploy)
+          example: "0x1234567890abcdef1234567890abcdef12345678"
+        files:
+          type: string
+          format: binary
+          description: Zip file containing your static site. Must have index.html at root.
+        gitUrl:
+          type: string
+          description: (Not yet implemented) Git repository URL to clone and deploy
+          example: https://github.com/user/repo
+
+    DeployResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        url:
+          type: string
+          description: Live URL of the deployed site
+          example: https://fittrack.dev
+        domain:
+          type: string
+          example: fittrack.dev
+        deployId:
+          type: string
+          description: Cloudflare Pages deployment ID
+        status:
+          type: string
+          enum: [live, deploying, error]
+          example: live
+        ssl:
+          type: boolean
+          description: SSL is active (always true via Cloudflare)
+        dns:
+          type: boolean
+          description: DNS is configured
+        cfPagesUrl:
+          type: string
+          description: Cloudflare Pages URL (pages.dev subdomain)
+          example: https://fittrack-dev.pages.dev
+        note:
+          type: string
+
+    RedeployRequest:
+      type: object
+      required: [domain, owner, files]
+      properties:
+        domain:
+          type: string
+          description: Domain to redeploy
+          example: fittrack.dev
+        owner:
+          type: string
+          description: Wallet address (must match original deployer)
+          example: "0x1234567890abcdef1234567890abcdef12345678"
+        files:
+          type: string
+          format: binary
+          description: Updated zip file
+
+    RedeployResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        url:
+          type: string
+          example: https://fittrack.dev
+        deployId:
+          type: string
+        status:
+          type: string
+          example: live
+
+    AgentMeta:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        url:
+          type: string
+        openapi:
+          type: string
+        readme:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+        payment:
+          type: object
+          properties:
+            protocol:
+              type: string
+              example: x402
+            network:
+              type: string
+              example: eip155:8453
+            asset:
+              type: string
+              example: USDC
+            assetAddress:
+              type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+
+  responses:
+    BadRequest:
+      description: Bad request — invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: domain is required
+
+    PaymentRequired:
+      description: |
+        Payment required via x402 protocol.
+        Decode the X-Payment-Required header to get payment details.
+        Sign a USDC authorization and retry with the X-Payment header.
+      headers:
+        X-Payment-Required:
+          description: Base64-encoded JSON payment requirements
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Payment required
+              x402Version:
+                type: integer
+                example: 2
+              accepts:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    scheme:
+                      type: string
+                      example: exact
+                    network:
+                      type: string
+                      example: eip155:8453
+                    payTo:
+                      type: string
+                    asset:
+                      type: string
+                    amount:
+                      type: string
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Domain registration failed
+
+    ServiceUnavailable:
+      description: External API not configured
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Name.com API not configured

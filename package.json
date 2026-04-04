@@ -1,0 +1,36 @@
+{
+  "name": "domainagent-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for domainagent.dev — search, register, deploy, and manage domains with x402 payments",
+  "main": "index.js",
+  "bin": {
+    "domainagent-mcp": "./index.js"
+  },
+  "keywords": [
+    "mcp",
+    "domain",
+    "deploy",
+    "x402",
+    "agent",
+    "domainagent",
+    "registrar",
+    "cloudflare",
+    "usdc",
+    "base",
+    "crypto",
+    "ai-agent"
+  ],
+  "author": "domainagent",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mswat/domainagent-mcp"
+  },
+  "homepage": "https://domainagent.dev",
+  "engines": {
+    "node": ">=18"
+  }
+}

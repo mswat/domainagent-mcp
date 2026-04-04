@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "domainagent": {
+      "command": "npx",
+      "args": ["domainagent-mcp"],
+      "env": {
+        "SHIPAGENT_API": "https://domainagent.dev"
+      }
+    }
+  }
+}
