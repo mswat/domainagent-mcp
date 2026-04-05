@@ -24,6 +24,8 @@ tags:
     description: Domain search and recommendations (free)
   - name: Deploy
     description: Domain registration and deployment (x402 payment required)
+  - name: Hosting
+    description: Hosting management — env vars, logs, rollback
   - name: Status
     description: Deployment and DNS status (free)
 
@@ -368,6 +370,429 @@ paths:
         assetAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
         price: 2.0
 
+  /api/hosting/{domain}/env:
+    get:
+      tags: [Hosting]
+      summary: List environment variables
+      description: |
+        List environment variable names for a deployed domain. Values are masked.
+        Requires wallet authentication.
+      operationId: listEnvVars
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Domain name
+      responses:
+        '200':
+          description: Environment variables (masked)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  domain:
+                    type: string
+                  envVars:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  count:
+                    type: integer
+              example:
+                domain: myapp.dev
+                envVars:
+                  DATABASE_URL: "***masked***"
+                  API_KEY: "***masked***"
+                count: 2
+        '401':
+          description: Authentication required
+        '404':
+          description: No deployment found
+    post:
+      tags: [Hosting]
+      summary: Set environment variables
+      description: |
+        Set one or more environment variables for a deployed domain.
+        Merges with existing vars. Restarts the app automatically.
+        Requires wallet authentication.
+      operationId: setEnvVars
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vars]
+              properties:
+                vars:
+                  type: object
+                  description: Key-value pairs to set
+                  additionalProperties:
+                    type: string
+            example:
+              vars:
+                DATABASE_URL: "postgres://user:pass@host/db"
+                NODE_ENV: "production"
+      responses:
+        '200':
+          description: Env vars updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  domain:
+                    type: string
+                  envVars:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  count:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Authentication required
+        '404':
+          description: No deployment found
+
+  /api/hosting/{domain}/env/{key}:
+    delete:
+      tags: [Hosting]
+      summary: Delete an environment variable
+      description: |
+        Delete a single environment variable by key. Restarts the app automatically.
+        Requires wallet authentication.
+      operationId: deleteEnvVar
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Environment variable key to delete
+      responses:
+        '200':
+          description: Env var deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  domain:
+                    type: string
+                  deleted:
+                    type: string
+        '401':
+          description: Authentication required
+        '404':
+          description: Env var or deployment not found
+
+  /api/hosting/{domain}/logs:
+    get:
+      tags: [Hosting]
+      summary: Fetch recent logs
+      description: |
+        Fetch recent logs for a deployed domain. Only available for Fly-hosted apps.
+        Requires wallet authentication.
+      operationId: getLogs
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: lines
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 100
+          description: Number of log lines to return
+      responses:
+        '200':
+          description: Log output
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  domain:
+                    type: string
+                  logs:
+                    type: array
+                    items:
+                      type: object
+                  machineId:
+                    type: string
+                  timestamp:
+                    type: string
+        '401':
+          description: Authentication required
+        '404':
+          description: No deployment found
+
+  /api/deploy/preview:
+    post:
+      tags: [Deploy]
+      summary: Deploy to a preview URL
+      description: |
+        Deploy files to a temporary preview URL (*.fly.dev) without needing a custom domain.
+        Perfect for testing before going live. Optionally associate with a domain for later promotion.
+
+        **x402 Payment Required:** $2 USDC.
+      operationId: deployPreview
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [owner, files]
+              properties:
+                owner:
+                  type: string
+                  description: Wallet address
+                domain:
+                  type: string
+                  description: Optional domain to associate the preview with
+                hostingTier:
+                  type: string
+                  description: Hosting tier (default starter)
+                files:
+                  type: string
+                  format: binary
+                  description: Zip file of your site
+      responses:
+        '200':
+          description: Preview deployed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  previewUrl:
+                    type: string
+                  previewId:
+                    type: string
+                  domain:
+                    type: string
+                    nullable: true
+                  runtime:
+                    type: string
+              example:
+                success: true
+                previewUrl: https://da-preview-abc123.fly.dev
+                previewId: da-preview-abc123
+                runtime: static
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+      x-x402:
+        scheme: exact
+        network: eip155:8453
+        asset: USDC
+        assetAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+        price: 2.0
+
+  /api/deploy/promote:
+    post:
+      tags: [Deploy]
+      summary: Promote preview to production
+      description: |
+        Promote a preview deployment to production on a custom domain.
+        Wires DNS and SSL automatically. Old production app is cleaned up.
+        Requires wallet authentication.
+      operationId: deployPromote
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [domain, previewId]
+              properties:
+                domain:
+                  type: string
+                  description: Domain to promote the preview to
+                previewId:
+                  type: string
+                  description: Preview app ID from /api/deploy/preview
+      responses:
+        '200':
+          description: Promoted to production
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  promoted:
+                    type: boolean
+                  liveUrl:
+                    type: string
+                  domain:
+                    type: string
+                  previewId:
+                    type: string
+              example:
+                promoted: true
+                liveUrl: https://myapp.dev
+                domain: myapp.dev
+                previewId: da-preview-abc123
+        '401':
+          description: Authentication required
+        '404':
+          description: Deployment or preview not found
+
+  /api/hosting/{domain}/rollback:
+    post:
+      tags: [Hosting]
+      summary: Rollback to previous deploy
+      description: |
+        Roll back a domain to its previous deployment version.
+        Requires at least 2 deploys in history. Keeps last 5 versions.
+        Requires wallet authentication.
+      operationId: rollback
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rolled back successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rolledBack:
+                    type: boolean
+                  version:
+                    type: integer
+                  deployedAt:
+                    type: integer
+                  domain:
+                    type: string
+              example:
+                rolledBack: true
+                version: 2
+                deployedAt: 1712000000000
+                domain: myapp.dev
+        '401':
+          description: Authentication required
+        '404':
+          description: No previous version or deployment not found
+
+  /api/deploy/from-git:
+    post:
+      tags: [Deploy]
+      summary: Deploy from a Git repo
+      description: |
+        Deploy directly from a GitHub repository URL. Clones the repo, auto-detects
+        runtime (Node.js, Python, Docker, or static), builds if needed, and deploys.
+
+        **x402 Payment Required:** $2 USDC.
+      operationId: deployFromGit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [domain, repoUrl, owner, email]
+              properties:
+                domain:
+                  type: string
+                  description: Domain to deploy to
+                repoUrl:
+                  type: string
+                  description: Git repository URL
+                  example: https://github.com/user/repo
+                branch:
+                  type: string
+                  description: Branch to deploy (default main)
+                owner:
+                  type: string
+                  description: Wallet address
+                email:
+                  type: string
+                  description: Contact email for hosting notices
+                hostingTier:
+                  type: string
+                  description: Hosting tier (default starter)
+                hostingBilling:
+                  type: string
+                  description: Billing cycle (monthly or annual)
+      responses:
+        '200':
+          description: Deployed from git
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  url:
+                    type: string
+                  domain:
+                    type: string
+                  runtime:
+                    type: string
+                  hostedBy:
+                    type: string
+              example:
+                success: true
+                url: https://myapp.dev
+                domain: myapp.dev
+                runtime: node
+                hostedBy: fly
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+      x-x402:
+        scheme: exact
+        network: eip155:8453
+        asset: USDC
+        assetAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+        price: 2.0
+
 components:
   schemas:
     SearchRequest:
@@ -626,6 +1051,12 @@ components:
         error:
           type: string
           description: Error message
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Session token from /api/auth/verify
 
   responses:
     BadRequest:
