@@ -355,7 +355,8 @@ Hosting tiers:
 For Python/Node apps, use app_sm or higher. Static sites work on any tier.
 
 ⚠️ By default, apps auto-stop after ~5 min idle and cold-start on the next request (~2-5s delay).
-Set alwaysOn: true to keep your app running 24/7 with zero cold starts (recommended for production apps).`,
+Set alwaysOn: true to keep your app running 24/7 with zero cold starts.
+Always-on is free on app tiers (app_sm/md/lg). Static tiers (starter/growth/pro) have a +$2/mo surcharge.`,
     inputSchema: {
       type: "object",
       required: ["domain", "owner", "filesBase64", "email"],
