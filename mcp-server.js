@@ -352,7 +352,10 @@ Hosting tiers:
 - Static: starter ($3/mo), growth ($8/mo), pro ($20/mo)
 - App: app_sm ($12/mo, 256MB), app_md ($25/mo, 512MB), app_lg ($50/mo, 1GB)
 
-For Python/Node apps, use app_sm or higher. Static sites work on any tier.`,
+For Python/Node apps, use app_sm or higher. Static sites work on any tier.
+
+⚠️ By default, apps auto-stop after ~5 min idle and cold-start on the next request (~2-5s delay).
+Set alwaysOn: true to keep your app running 24/7 with zero cold starts (recommended for production apps).`,
     inputSchema: {
       type: "object",
       required: ["domain", "owner", "filesBase64", "email"],
@@ -383,6 +386,10 @@ For Python/Node apps, use app_sm or higher. Static sites work on any tier.`,
             zip: { type: "string" },
             country: { type: "string", description: "2-letter ISO country code, e.g. US" },
           },
+        },
+        alwaysOn: {
+          type: "boolean",
+          description: "Keep app running 24/7 with no cold starts. Default false (app sleeps after ~5 min idle). Recommended true for production apps.",
         },
         paymentSignature: {
           type: "string",
@@ -831,7 +838,7 @@ async function handleTool(name, args) {
     }
 
     case "domainagent_deploy": {
-      const { domain, owner, filesBase64, paymentSignature, email, hostingTier, hostingBilling, contacts } = args;
+      const { domain, owner, filesBase64, paymentSignature, email, hostingTier, hostingBilling, contacts, alwaysOn } = args;
 
       let fileBuffer = null;
       if (filesBase64) {
@@ -851,7 +858,7 @@ async function handleTool(name, args) {
         extraHeaders["PAYMENT-SIGNATURE"] = paymentSignature;
       }
 
-      const fields = { domain, owner, email, hostingTier, hostingBilling };
+      const fields = { domain, owner, email, hostingTier, hostingBilling, alwaysOn: alwaysOn || false };
       if (contacts) fields.contacts = JSON.stringify(contacts);
 
       const res = await multipartRequest(
