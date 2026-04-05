@@ -338,11 +338,21 @@ Steps:
 The tool handles:
 - Domain availability check
 - Domain registration via Name.com
-- Deployment to Cloudflare Pages
+- Deployment to Fly.io (or Cloudflare Pages if connected)
 - DNS configuration
-- SSL (automatic via Cloudflare)
+- SSL (automatic)
 
-Your zip file must contain a static site with index.html at the root.`,
+Supported runtimes (auto-detected from your zip contents):
+- Static sites (HTML/CSS/JS) → served via Caddy
+- Node.js (package.json detected) → node:20-alpine
+- Python (requirements.txt detected) → python:3.12-slim with gunicorn/uvicorn
+- Docker (Dockerfile detected) → custom build
+
+Hosting tiers:
+- Static: starter ($3/mo), growth ($8/mo), pro ($20/mo)
+- App: app_sm ($12/mo, 256MB), app_md ($25/mo, 512MB), app_lg ($50/mo, 1GB)
+
+For Python/Node apps, use app_sm or higher. Static sites work on any tier.`,
     inputSchema: {
       type: "object",
       required: ["domain", "owner", "filesBase64", "email"],
@@ -357,7 +367,22 @@ Your zip file must contain a static site with index.html at the root.`,
         },
         filesBase64: {
           type: "string",
-          description: "Base64-encoded zip file of your static site (must include index.html at root)",
+          description: "Base64-encoded zip file of your site (must include index.html at root for static, or package.json/requirements.txt for apps)",
+        },
+        contacts: {
+          type: "object",
+          description: "ICANN registrant contact info. If omitted, account defaults are used. Required fields: firstName, lastName, email, phone, address1, city, state, zip, country",
+          properties: {
+            firstName: { type: "string" },
+            lastName: { type: "string" },
+            email: { type: "string" },
+            phone: { type: "string", description: "E.164 format, e.g. +1.5551234567" },
+            address1: { type: "string" },
+            city: { type: "string" },
+            state: { type: "string" },
+            zip: { type: "string" },
+            country: { type: "string", description: "2-letter ISO country code, e.g. US" },
+          },
         },
         paymentSignature: {
           type: "string",
@@ -512,7 +537,19 @@ Steps:
   {
     name: "domainagent_deploy_preview",
     description:
-      "Deploy files to a preview URL without a custom domain. Good for testing before going live. Protected by x402 — $2 fee.",
+      `Deploy files to a preview URL without a custom domain. Good for testing before going live. Protected by x402 — $2 fee.
+
+Supported runtimes (auto-detected from your zip contents):
+- Static sites (HTML/CSS/JS) → served via Caddy
+- Node.js (package.json detected) → node:20-alpine
+- Python (requirements.txt detected) → python:3.12-slim with gunicorn/uvicorn
+- Docker (Dockerfile detected) → custom build
+
+Hosting tiers:
+- Static: starter ($3/mo), growth ($8/mo), pro ($20/mo)
+- App: app_sm ($12/mo, 256MB), app_md ($25/mo, 512MB), app_lg ($50/mo, 1GB)
+
+For Python/Node apps, use app_sm or higher. Static sites work on any tier.`,
     inputSchema: {
       type: "object",
       required: ["owner", "filesBase64"],
@@ -553,9 +590,33 @@ Steps:
     },
   },
   {
+    name: "domainagent_deploy_resume",
+    description: "Resume a failed deploy. If a deploy crashed after domain registration but before the app went live, this re-deploys from the saved zip without re-purchasing the domain.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        domain: { type: "string", description: "Domain to resume deploy for" },
+        authToken: { type: "string", description: "Session token from auth/verify" },
+      },
+      required: ["domain", "authToken"],
+    },
+  },
+  {
     name: "domainagent_deploy_from_git",
     description:
-      "Deploy directly from a GitHub repo URL. Clones the repo, auto-detects runtime (Node.js, Python, Docker, static), builds, and deploys. Protected by x402 — $2 fee.",
+      `Deploy directly from a GitHub repo URL. Clones the repo, auto-detects runtime (Node.js, Python, Docker, static), builds, and deploys. Protected by x402 — $2 fee.
+
+Supported runtimes (auto-detected from your repo contents):
+- Static sites (HTML/CSS/JS) → served via Caddy
+- Node.js (package.json detected) → node:20-alpine
+- Python (requirements.txt detected) → python:3.12-slim with gunicorn/uvicorn
+- Docker (Dockerfile detected) → custom build
+
+Hosting tiers:
+- Static: starter ($3/mo), growth ($8/mo), pro ($20/mo)
+- App: app_sm ($12/mo, 256MB), app_md ($25/mo, 512MB), app_lg ($50/mo, 1GB)
+
+For Python/Node apps, use app_sm or higher. Static sites work on any tier.`,
     inputSchema: {
       type: "object",
       required: ["domain", "repoUrl", "owner", "email"],
@@ -770,7 +831,7 @@ async function handleTool(name, args) {
     }
 
     case "domainagent_deploy": {
-      const { domain, owner, filesBase64, paymentSignature, email, hostingTier, hostingBilling } = args;
+      const { domain, owner, filesBase64, paymentSignature, email, hostingTier, hostingBilling, contacts } = args;
 
       let fileBuffer = null;
       if (filesBase64) {
@@ -790,10 +851,13 @@ async function handleTool(name, args) {
         extraHeaders["PAYMENT-SIGNATURE"] = paymentSignature;
       }
 
+      const fields = { domain, owner, email, hostingTier, hostingBilling };
+      if (contacts) fields.contacts = JSON.stringify(contacts);
+
       const res = await multipartRequest(
         "POST",
         "/api/deploy",
-        { domain, owner, email, hostingTier, hostingBilling },
+        fields,
         fileBuffer,
         extraHeaders
       );
@@ -943,6 +1007,13 @@ async function handleTool(name, args) {
       const res = await apiRequest("POST", `/api/hosting/${encodeURIComponent(args.domain)}/rollback`, null, {
         Authorization: `Bearer ${args.authToken}`,
       });
+      return formatResult(res);
+    }
+
+    case "domainagent_deploy_resume": {
+      const res = await apiRequest("POST", "/api/deploy/resume", {
+        domain: args.domain,
+      }, { Authorization: `Bearer ${args.authToken}` });
       return formatResult(res);
     }
 
