@@ -124,6 +124,45 @@ Your agent signs a USDC authorization and retries with the `X-Payment` header. T
 - **Connect your own Cloudflare** — deploy to your infrastructure, not ours
 - **Open MCP** — this repo is MIT licensed
 
+## x402 Payment Signing
+
+Some MCP tools (deploy, redeploy, renew) require x402 USDC payment on Base mainnet.
+
+The `examples/` directory includes tools to make this easy:
+
+### x402-signer.js
+
+Signs x402 payment headers from your wallet. Use it when an MCP tool returns a 402:
+
+```bash
+# Install dependencies
+npm install viem @x402/core @x402/evm
+
+# Sign a payment from a saved 402 response
+node examples/x402-signer.js --payment-file payment-402.json --key 0xYOUR_KEY
+
+# Or pipe it
+echo '{"paymentDetails":{...}}' | node examples/x402-signer.js --key 0xYOUR_KEY
+
+# Use with env var
+export WALLET_PRIVATE_KEY=0x...
+node examples/x402-signer.js --payment-file payment-402.json
+```
+
+Output: a base64-encoded `PAYMENT-SIGNATURE` value ready to pass as `paymentSignature` in any MCP tool.
+
+### Full deploy flow example
+
+```bash
+export WALLET_PRIVATE_KEY=0x...
+export WALLET_ADDRESS=0x...
+export CONTACT_EMAIL=you@example.com
+
+./examples/agent-deploy-flow.sh mydomain.xyz ./my-site.zip
+```
+
+This script handles the complete flow: search → deploy attempt → sign payment → retry with signature → verify status.
+
 ## API
 
 Full OpenAPI spec: [domainagent.dev/openapi.yaml](https://domainagent.dev/openapi.yaml)
