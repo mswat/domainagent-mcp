@@ -345,7 +345,7 @@ The tool handles:
 Your zip file must contain a static site with index.html at the root.`,
     inputSchema: {
       type: "object",
-      required: ["domain", "owner", "filesBase64"],
+      required: ["domain", "owner", "filesBase64", "email"],
       properties: {
         domain: {
           type: "string",
@@ -770,7 +770,7 @@ async function handleTool(name, args) {
     }
 
     case "domainagent_deploy": {
-      const { domain, owner, filesBase64, paymentSignature } = args;
+      const { domain, owner, filesBase64, paymentSignature, email, hostingTier, hostingBilling } = args;
 
       let fileBuffer = null;
       if (filesBase64) {
@@ -793,7 +793,7 @@ async function handleTool(name, args) {
       const res = await multipartRequest(
         "POST",
         "/api/deploy",
-        { domain, owner },
+        { domain, owner, email, hostingTier, hostingBilling },
         fileBuffer,
         extraHeaders
       );
