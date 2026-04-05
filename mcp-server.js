@@ -734,6 +734,7 @@ async function handleTool(name, args) {
     case "domainagent_renew": {
       const extraHeaders = {};
       if (args.paymentSignature) extraHeaders["X-Payment"] = args.paymentSignature;
+        extraHeaders["PAYMENT-SIGNATURE"] = args.paymentSignature;
       const res = await apiRequest("POST", "/api/renew", {
         domain: args.domain,
         owner: args.owner,
@@ -786,6 +787,7 @@ async function handleTool(name, args) {
       const extraHeaders = {};
       if (paymentSignature) {
         extraHeaders["X-Payment"] = paymentSignature;
+        extraHeaders["PAYMENT-SIGNATURE"] = paymentSignature;
       }
 
       const res = await multipartRequest(
@@ -817,6 +819,7 @@ async function handleTool(name, args) {
       const extraHeaders = {};
       if (paymentSignature) {
         extraHeaders["X-Payment"] = paymentSignature;
+        extraHeaders["PAYMENT-SIGNATURE"] = paymentSignature;
       }
 
       const res = await multipartRequest(
@@ -838,6 +841,7 @@ async function handleTool(name, args) {
     case "domainagent_hosting_pay": {
       const extraHeaders = {};
       if (args.paymentSignature) extraHeaders["X-Payment"] = args.paymentSignature;
+        extraHeaders["PAYMENT-SIGNATURE"] = args.paymentSignature;
       const res = await apiRequest("POST", "/api/hosting/pay", {
         domain: args.domain,
         tier: args.tier,
@@ -849,6 +853,7 @@ async function handleTool(name, args) {
     case "domainagent_hosting_pay_overage": {
       const extraHeaders = {};
       if (args.paymentSignature) extraHeaders["X-Payment"] = args.paymentSignature;
+        extraHeaders["PAYMENT-SIGNATURE"] = args.paymentSignature;
       const res = await apiRequest("POST", "/api/hosting/pay-overage", {
         domain: args.domain,
       }, extraHeaders);
@@ -909,6 +914,7 @@ async function handleTool(name, args) {
 
       const extraHeaders = {};
       if (paymentSignature) extraHeaders["X-Payment"] = paymentSignature;
+        extraHeaders["PAYMENT-SIGNATURE"] = paymentSignature;
 
       const fields = { owner };
       if (domain) fields.domain = domain;
@@ -943,6 +949,7 @@ async function handleTool(name, args) {
     case "domainagent_deploy_from_git": {
       const extraHeaders = {};
       if (args.paymentSignature) extraHeaders["X-Payment"] = args.paymentSignature;
+        extraHeaders["PAYMENT-SIGNATURE"] = args.paymentSignature;
       const res = await apiRequest("POST", "/api/deploy/from-git", {
         domain: args.domain,
         repoUrl: args.repoUrl,
