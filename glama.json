@@ -1,0 +1,24 @@
+{
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "name": "domainagent-mcp",
+  "description": "MCP server for domainagent.dev — go from idea to live, hosted website in one agent prompt. Register domains, deploy & host sites, manage DNS. Pay with USDC via x402.",
+  "homepage": "https://domainagent.dev",
+  "repository": "https://github.com/mswat/domainagent-mcp",
+  "license": "MIT",
+  "categories": ["hosting", "domains", "deployment", "web", "payments"],
+  "tools": [
+    "domainagent_search",
+    "domainagent_recommend",
+    "domainagent_pricing",
+    "domainagent_deploy",
+    "domainagent_redeploy",
+    "domainagent_renew",
+    "domainagent_health",
+    "domainagent_dns_list",
+    "domainagent_dns_add",
+    "domainagent_dns_delete",
+    "domainagent_list_domains",
+    "domainagent_connect",
+    "domainagent_transfer_out"
+  ]
+}
