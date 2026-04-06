@@ -135,6 +135,8 @@ Your agent signs a USDC authorization and retries with the `X-Payment` header. T
 - **Free transfer-out** — get your auth/EPP code anytime via `domainagent_transfer_out`
 - **You own your domain** — registered in your name via Name.com (ICANN-accredited)
 - **Connect your own Cloudflare** — deploy to your infrastructure, not ours
+
+> ⚠️ **BYO Cloudflare requirement:** This works for static sites where your domain is already in your Cloudflare account. If the domain isn't in your CF account yet, DNS setup will fail. Make sure your domain's nameservers are pointed to Cloudflare before connecting.
 - **Open MCP** — this repo is MIT licensed
 
 ## x402 Payment Signing
