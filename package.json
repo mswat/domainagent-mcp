@@ -1,6 +1,6 @@
 {
   "name": "domainagent-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server for domainagent.dev — search, register, deploy, and manage domains with x402 payments",
   "main": "index.js",
   "bin": {
