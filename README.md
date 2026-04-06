@@ -71,6 +71,19 @@ domainagent-mcp
 | `domainagent_connect` | Connect your Cloudflare account | Token | Free |
 | `domainagent_transfer_out` | Get auth/EPP code for transfer | Token | Free |
 
+## Hosting Plans
+
+| Tier | Monthly | Bandwidth | Type | Overage | Auto-pause |
+|------|---------|-----------|------|---------|------------|
+| starter | $3/mo | 5 GB | Static (CF Pages) | $0.50/GB | At limit |
+| growth | $8/mo | 25 GB | Static (CF Pages) | $0.50/GB | At limit |
+| pro | $20/mo | 100 GB | Static (CF Pages) | $0.50/GB | At limit |
+| app_sm | $12/mo | 25 GB | App (Fly.io) | $0.50/GB | At limit |
+| app_md | $25/mo | 50 GB | App (Fly.io) | $0.50/GB | At limit |
+| app_lg | $50/mo | 100 GB | App (Fly.io) | $0.50/GB | At limit |
+
+**Bandwidth enforcement:** At 80% you'll get an email warning. At 100% your site pauses automatically — no surprise bills. Bandwidth is tracked in real-time via the Fly.io GraphQL API.
+
 ## Quick Start
 
 **Search for a domain:**
