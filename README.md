@@ -1,12 +1,12 @@
 # domainagent-mcp
 
-MCP server for [domainagent.dev](https://domainagent.dev) — the domain registrar built for AI agents.
+MCP server for [domainagent.dev](https://domainagent.dev) — go from idea to live, hosted website in one agent prompt.
 
-Search, register, deploy, and manage domains in one prompt. Pay with USDC on Base via x402.
+Search, register, deploy, host, and manage domains. Pay with USDC on Base via x402.
 
 ## What is domainagent?
 
-domainagent is an agent-first domain registrar. Instead of clicking through GoDaddy, your AI agent calls an API and gets:
+domainagent is an agent-first domain + hosting platform. Instead of clicking through GoDaddy, Netlify, and Cloudflare separately, your AI agent calls one API and gets:
 
 - **Domain search + registration** via Name.com
 - **Static site deployment** via Cloudflare Pages
@@ -82,7 +82,7 @@ domainagent-mcp
 | app_md | $25/mo | 50 GB | App (Fly.io) | $0.50/GB | At limit |
 | app_lg | $50/mo | 100 GB | App (Fly.io) | $0.50/GB | At limit |
 
-**Bandwidth enforcement:** At 80% you'll get an email warning. At 100% your site pauses automatically — no surprise bills. Bandwidth is tracked in real-time via the Fly.io GraphQL API.
+**Bandwidth enforcement:** At 80% you'll get an email warning. At 100% your site pauses automatically — no surprise bills. First month is billed at deploy time.
 
 ## Quick Start
 
@@ -135,6 +135,8 @@ Your agent signs a USDC authorization and retries with the `X-Payment` header. T
 - **Free transfer-out** — get your auth/EPP code anytime via `domainagent_transfer_out`
 - **You own your domain** — registered in your name via Name.com (ICANN-accredited)
 - **Connect your own Cloudflare** — deploy to your infrastructure, not ours
+
+> ⚠️ **BYO Cloudflare requirement:** This works for static sites where your domain is already in your Cloudflare account. If the domain isn't in your CF account yet, DNS setup will fail. Make sure your domain's nameservers are pointed to Cloudflare before connecting.
 - **Open MCP** — this repo is MIT licensed
 
 ## x402 Payment Signing
@@ -185,3 +187,7 @@ Agent discovery: [domainagent.dev/.well-known/agent.json](https://domainagent.de
 ## License
 
 MIT
+
+## Source
+
+Open source MCP server: [github.com/mswat/domainagent-mcp](https://github.com/mswat/domainagent-mcp)
