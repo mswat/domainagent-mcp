@@ -1,12 +1,12 @@
 # domainagent-mcp
 
-MCP server for [domainagent.dev](https://domainagent.dev) — the domain registrar built for AI agents.
+MCP server for [domainagent.dev](https://domainagent.dev) — go from idea to live, hosted website in one agent prompt.
 
-Search, register, deploy, and manage domains in one prompt. Pay with USDC on Base via x402.
+Search, register, deploy, host, and manage domains. Pay with USDC on Base via x402.
 
 ## What is domainagent?
 
-domainagent is an agent-first domain registrar. Instead of clicking through GoDaddy, your AI agent calls an API and gets:
+domainagent is an agent-first domain + hosting platform. Instead of clicking through GoDaddy, Netlify, and Cloudflare separately, your AI agent calls one API and gets:
 
 - **Domain search + registration** via Name.com
 - **Static site deployment** via Cloudflare Pages
@@ -70,6 +70,19 @@ domainagent-mcp
 | `domainagent_renewal_email` | Set renewal reminder email | Token | Free |
 | `domainagent_connect` | Connect your Cloudflare account | Token | Free |
 | `domainagent_transfer_out` | Get auth/EPP code for transfer | Token | Free |
+
+## Hosting Plans
+
+| Tier | Monthly | Bandwidth | Type | Overage | Auto-pause |
+|------|---------|-----------|------|---------|------------|
+| starter | $3/mo | 5 GB | Static (CF Pages) | $0.50/GB | At limit |
+| growth | $8/mo | 25 GB | Static (CF Pages) | $0.50/GB | At limit |
+| pro | $20/mo | 100 GB | Static (CF Pages) | $0.50/GB | At limit |
+| app_sm | $12/mo | 25 GB | App (Fly.io) | $0.50/GB | At limit |
+| app_md | $25/mo | 50 GB | App (Fly.io) | $0.50/GB | At limit |
+| app_lg | $50/mo | 100 GB | App (Fly.io) | $0.50/GB | At limit |
+
+**Bandwidth enforcement:** At 80% you'll get an email warning. At 100% your site pauses automatically — no surprise bills. First month is billed at deploy time.
 
 ## Quick Start
 
@@ -172,3 +185,7 @@ Agent discovery: [domainagent.dev/.well-known/agent.json](https://domainagent.de
 ## License
 
 MIT
+
+## Source
+
+Open source MCP server: [github.com/mswat/domainagent-mcp](https://github.com/mswat/domainagent-mcp)
